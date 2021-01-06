@@ -26,7 +26,7 @@ class Regression:
         X = np.insert(X, 0, 1, axis=1)   # insert 1 as the first entry in each sample
 
         if (optimizer == 'normal'):
-            assert self.reg_type == 'linear' # enforce normal equation for linear regression only
+            assert self.reg_type == 'linear' # ensure normal equation applied to linear reg only
             self.weights = np.linalg.inv(np.transpose(X) @ X) @ np.transpose(X) @ y
             return self.weights
 
@@ -46,6 +46,18 @@ class Regression:
                     hypothesis = reg_function(X @ self.weights, self.reg_type)
                     error = y[i][0] - hypothesis[i][0]
                     self.weights = self.weights + learning_rate * error * X[i].reshape(-1,1)
+                iter += 1
+            return self.weights 
+
+        if (optimizer == 'newton'):
+            assert self.reg_type == 'logistic' # ensure Newton method used for logistic only
+            iter = 0
+            self.weights = np.random.randn(X.shape[1],1)
+            while (iter < max_iter):
+                hypothesis = reg_function(X @ self.weights, self.reg_type)
+                gradient = np.dot(X.T, (hypothesis - y))
+                hessian = X.T @ np.diag(hypothesis.reshape(-1) * (1-hypothesis).reshape(-1)) @ X
+                self.weights = self.weights - np.linalg.inv(hessian) @ gradient
                 iter += 1
             return self.weights 
 
@@ -75,7 +87,7 @@ class Regression:
 #X = np.array([0.50,0.75,1.00,1.25,1.50,1.75,1.75,2.00,2.25,2.50,2.75,3.00,3.25,3.50,4.00,4.25,4.50,4.75,5.00,5.50]).reshape(-1,1)
 #y = np.array([0,0,0,0,0,0,1,0,1,0,1,0,1,0,1,1,1,1,1,1]).reshape(-1,1)
 #test = Regression('logistic')
-#weights = test.fit_weights(X,y,learning_rate=.002, optimizer='batch_gd')
+#weights = test.fit_weights(X,y, optimizer='newton', max_iter=1000)
 #y_pred = test.make_prediction(X)
 #print(weights)
 
