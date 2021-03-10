@@ -1,0 +1,156 @@
+---
+title: "Test Batting and Bowling EDA"
+author: "Ridha Sameer"
+date: "3/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+
+test_batting <- read_csv("ICC Test Batting Figures.csv")
+#Require minimum of 30 innings to qualify
+test_batting <- filter(test_batting, Inn >= 30)
+test_batting <- mutate(test_batting, debut = strtoi(str_sub(Span,1,4), base =0L), Era = case_when((debut < 1975) ~ "Pre-ODI Era", (debut >= 1975 & debut < 2005) ~ "ODI Era",(debut >= 2005) ~ "T20 Era"))
+
+test_bowling <- read_csv("ICC Test Bowl 3003.csv")
+#Require minimum of 30 innings to qualify
+test_bowling <- filter(test_bowling, Inns >= 30)
+test_bowling <- mutate(test_bowling, debut = strtoi(str_sub(Span,1,4), base =0L), Era = case_when((debut < 1975) ~ "Pre-ODI Era", (debut >= 1975 & debut < 2005) ~ "ODI Era",(debut >= 2005) ~ "T20 Era"))
+
+```
+
+In this exploratory data analysis, we will look at data on test match batting and bowling to see how the game has changed from a data point of view as new formats like ODIs and T20s have been introduced. This is done using two datasets found on Kaggle:  
+1. [Test Batting Dataset](https://www.kaggle.com/veeralakrishna/icc-test-cricket-runs)  
+2. [Test Bowling Dataset](https://www.kaggle.com/veeralakrishna/icc-test-cricket-bowling-figures)  
+  
+In this analysis, we will only consider players that have played at least 30 test match innings to avoid outliers and we define the "era" that a player is from by the year that they made their debut. That is,
+a player debuting before 1975 will be considered from the "Pre-ODI Era," a player debuting after 1975 but before 2005 will be from the "ODI Era," and a player debuting after 2005 will be from the "T20 Era." We should also note that there will be far more Pre-ODI players than ODI or T20 players simply due to the amount of time between the introduction of the formats.
+
+# Test Batting
+
+The batting average is the most common way to gauge a batsman's ability, so let us look at the distribution of batting average for all batsmen in the dataset with a line drawn at the median.  
+
+```{r, echo = FALSE}
+#Plot distribution of averages for all batsmen
+ggplot(data = test_batting) +
+  geom_histogram(mapping = aes(x = Avg),fill = 'red', binwidth = 2.5) +
+  geom_vline(xintercept=median(test_batting$Avg), lwd=1, linetype=2, color="black")+
+  ggtitle("Distribution of Test Averages for All Batsmen") + xlab("Average") + ylab("Count") +
+  theme(plot.title = element_text(hjust = 0.5))
+#Outlier is Don Bradman, median batting average is 29.45  
+```  
+  
+Here, we see a distribution that is nearly normal (possibly bimodal) with one clear outlier. This is, of course, Don Bradman who averaged 99.94 in his career. The median average is 29.45.  
+  
+Let us now split up the data by era and look at the distributions for each era.  
+```{r, echo = FALSE}
+#Plot distribution of averages for each era
+ggplot(data = filter(test_batting, Era == "Pre-ODI Era")) +
+  geom_histogram(mapping = aes(x = Avg),fill = 'red', binwidth = 2.5) +
+  geom_vline(xintercept=median(filter(test_batting, Era == "Pre-ODI Era")$Avg), lwd=1, linetype=2, color="black")+
+  ggtitle("Distribution of Test Averages for Pre-ODI Batsmen") + xlab("Average") + ylab("Count") +
+  theme(plot.title = element_text(hjust = 0.5))
+#Pre-ODI Median Avg is 30.05
+
+ggplot(data = filter(test_batting, Era == "ODI Era")) +
+  geom_histogram(mapping = aes(x = Avg),fill = 'red', binwidth = 2.5) +
+  geom_vline(xintercept=median(filter(test_batting, Era == "ODI Era")$Avg), lwd=1, linetype=2, color="black")+
+  ggtitle("Distribution of Test Averages for ODI Era Batsmen") + xlab("Average") + ylab("Count") +
+  theme(plot.title = element_text(hjust = 0.5))
+#ODI Median Avg is 29.07
+
+ggplot(data = filter(test_batting, Era == "T20 Era")) +
+  geom_histogram(mapping = aes(x = Avg),fill = 'red', binwidth = 2.5) +
+  geom_vline(xintercept=median(filter(test_batting, Era == "T20 Era")$Avg), lwd=1, linetype=2, color="black")+
+  ggtitle("Distribution of Test Averages for T20 Era Batsmen") + xlab("Average") + ylab("Count") +
+  theme(plot.title = element_text(hjust = 0.5))
+#T20 Median Avg is 30.08
+```
+  
+Now, we see that all of the distribution are fairly close in shape and have very similar medians (30.05 for Pre-ODI, 29.07 for ODI Era, and 30.08 for T20 Era). We can compare these more directly by using a histogram with density rather than count and a box plot.
+
+```{r, echo = FALSE, figures-side, fig.show="hold", out.width="50%"}
+#Plot together with density
+ggplot(data = test_batting, aes(x = Avg, after_stat(density), color = Era)) +
+  geom_freqpoly(binwidth = 2.5) + xlab("Average") + ylab("Density")
+
+#Alternative with box plot
+ggplot(data = test_batting, mapping = aes(x = Era, y = Avg)) +
+  geom_boxplot()
+```
+  
+We often hear that the newer formats of the game have worsened batting techniques and that modern batsmen are not as good as they were in the past. From the standpoint of averages, however, batsmen seem to be performing just as well now as they did in the past. Of course, there are more factors involved like the size of modern bats, well-curated pitches, protection for the batsmen, etc. So, it might be instructive to have a look at how bowling has changed as well.
+
+# Test Bowling
+
+Just as we considered batting average, we can also look at bowling average:
+```{r, echo = FALSE}
+#Plot distribution of averages for all bowlers
+ggplot(data = test_bowling) +
+  geom_histogram(mapping = aes(x = Ave),fill = 'red', binwidth = 2.5) +
+  geom_vline(xintercept=median(test_bowling$Ave), lwd=1, linetype=2, color="black")+
+  ggtitle("Distribution of Test Averages for All Bowlers") + xlab("Average") + ylab("Count") +
+  theme(plot.title = element_text(hjust = 0.5))
+#Median bowling average is 33.035
+```
+  
+We see that the distribution of bowling averages is much more skewed to the right than the distribution of batting averages. We see that the median bowling average is 33.04.
+  
+Now we can compare the eras:
+  
+```{r, echo = FALSE}
+#Plot distribution of averages for each era
+ggplot(data = filter(test_bowling, Era == "Pre-ODI Era")) +
+  geom_histogram(mapping = aes(x = Ave),fill = 'red', binwidth = 2.5) +
+  geom_vline(xintercept=median(filter(test_bowling, Era == "Pre-ODI Era")$Ave), lwd=1, linetype=2, color="black")+
+  ggtitle("Distribution of Test Averages for Pre-ODI Bowlers") + xlab("Average") + ylab("Count") +
+  theme(plot.title = element_text(hjust = 0.5))
+#Pre-ODI Median Avg is 31.06
+
+ggplot(data = filter(test_bowling, Era == "ODI Era")) +
+  geom_histogram(mapping = aes(x = Ave),fill = 'red', binwidth = 2.5) +
+  geom_vline(xintercept=median(filter(test_bowling, Era == "ODI Era")$Ave), lwd=1, linetype=2, color="black")+
+  ggtitle("Distribution of Test Averages for ODI Era Bowlers") + xlab("Average") + ylab("Count") +
+  theme(plot.title = element_text(hjust = 0.5))
+#ODI Median Avg is 34.41
+
+ggplot(data = filter(test_bowling, Era == "T20 Era")) +
+  geom_histogram(mapping = aes(x = Ave),fill = 'red', binwidth = 2.5) +
+  geom_vline(xintercept=median(filter(test_bowling, Era == "T20 Era")$Ave), lwd=1, linetype=2, color="black")+
+  ggtitle("Distribution of Test Averages for T20 Era Bowlers") + xlab("Average") + ylab("Count") +
+  theme(plot.title = element_text(hjust = 0.5))
+#T20 Median Avg is 33.27
+```
+  
+Again, we see that there isn't too much difference in the performance of bowlers between eras (median of 31.06 for Pre-ODI, 34.41 for ODI Era, and 33.27 for T20 Era)
+  
+```{r, echo = FALSE, figures-side2, fig.show="hold", out.width="50%"}
+#Plot together with density
+ggplot(data = test_bowling, aes(x = Ave, after_stat(density), color = Era)) +
+  geom_freqpoly(binwidth = 2.5) + xlab("Average") + ylab("Density")
+
+#Alternative with box plot
+ggplot(data = test_bowling, mapping = aes(x = Era, y = Ave)) +
+  geom_boxplot()
+```
+  
+If the lack of covered pitches, protection, and smaller bats made it more difficult for past batsmen, it would have made it easier for the bowlers. Given the similarities in averages, both batting and bowling, over time, I would hypothesize that any reduction of difficulty for the batsmen has been counteracted by improvements in bowling, which may make it seem like batting technique has become poorer. This effect is what keeps averages reasonably similar over different eras.
+  
+Of course, there are limitations to the way I have organized the data. Players who begin playing just a few years before a certain format is introduced, will be counted as a member of the previous formats era. Similarly, the formats could have been introduced domestically far earlier.
+  
+# Bonus: Dangerous Bowlers
+
+This section is just to have a look at which bowlers are the most dangerous. The strike rate (SR) measures the average number of balls a bowler bowls before a wicket is taken and the average tells us how many runs a bowler concedes on average before taking a wicket. Bowlers with strike rates under 50 and averages below 30, then, must be particularly dangerous.
+
+```{r, echo = FALSE}
+#Bonus: Dangerous bowlers
+ggplot(data = filter(test_bowling, (Ave <= 30 & SR <= 50) ), mapping = aes(x = Ave, y = SR)) +geom_point(mapping = aes(color = Era)) +
+  geom_text(aes(label=ifelse((Ave <= 30 & SR <= 50),as.character(sub("\\�.*", "", Player)),'')),hjust=0,vjust=0) + xlim(10,30)
+
+```
+
+
+
+
